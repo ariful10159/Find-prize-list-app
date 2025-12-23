@@ -9,11 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:find_prodict_prize/main.dart';
+import 'package:find_prodict_prize/models/user_role.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(userRole: UserRole.admin));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

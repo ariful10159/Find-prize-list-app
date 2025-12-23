@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+// import 'app.dart';
+import 'models/user_role.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  // TODO: Replace with real auth/role logic
+  const userRole = UserRole.admin; // Change to UserRole.user for user view
+  runApp(MyApp(userRole: userRole));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final UserRole userRole;
+
+  const MyApp({super.key, required this.userRole});
 
   // This widget is the root of your application.
   @override

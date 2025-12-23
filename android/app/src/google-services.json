@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "924258829246",
+    "project_id": "product-prize",
+    "storage_bucket": "product-prize.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:924258829246:android:dccb69e0d3e604e8142fef",
+        "android_client_info": {
+          "package_name": "com.example.find_prodict_prize"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSDh6PqnOEZsfxdsO3VMt0mlzZoBIn-mE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

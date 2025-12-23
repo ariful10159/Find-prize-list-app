@@ -39,10 +39,10 @@ dependencies:
   # Firebase & Firestore
   firebase_core: ^2.27.0
   cloud_firestore: ^4.15.0
-  firebase_auth: ^4.17.0
+  firebase_auth: ^4.16.0
 
   # File picker and Excel
-  file_picker: ^6.2.0
+  file_picker: ^10.3.8
   excel: ^2.1.0
 
   # State management
