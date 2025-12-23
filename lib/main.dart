@@ -5,6 +5,8 @@ import 'firebase_options.dart';
 import 'auth_page.dart';
 import 'registration_page.dart';
 import 'home_screen.dart';
+import 'admin_home_page.dart';
+import 'prize_upload_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => AuthPage(),
         '/register': (context) => RegistrationPage(),
         '/home': (context) => HomeScreen(),
+        '/admin-home': (context) => AdminHomePage(),
+        '/prize-upload': (context) => PrizeUploadPage(),
         // Add other pages here as you create them
       },
     );

@@ -22,13 +22,33 @@ class _RegistrationPageState extends State<RegistrationPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacementNamed(context, '/home');
+      print('Registration succeeded');
+      setState(() {
+        _loading = false;
+      });
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Registration Successful'),
+            content: const Text('Your account has been created successfully.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  });
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
-      });
-    } finally {
-      setState(() {
         _loading = false;
       });
     }

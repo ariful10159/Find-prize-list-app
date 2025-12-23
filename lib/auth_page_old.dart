@@ -17,49 +17,13 @@ class _AuthPageState extends State<AuthPage> {
       _loading = true;
       _error = null;
     });
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    // Check if admin login
-    if (email == 'admin@gmail.com') {
-      setState(() {
-        _loading = false;
-      });
-      if (password == 'admin123') {
-        print('Admin login succeeded');
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Admin Login Successful'),
-              content: const Text('Welcome Admin!'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushReplacementNamed(context, '/admin-home');
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }
-      } else {
-        setState(() {
-          _error = 'Invalid admin password';
-        });
-        print('Admin login failed: Invalid password');
-      }
-      return;
-    }
-
-    // Regular user login with Firebase
     try {
       final userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-      print('User login succeeded: ${userCredential.user?.email}');
+          .signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+      print('Login succeeded: [32m[1m${userCredential.user?.email}[0m');
       setState(() {
         _loading = false;
       });
@@ -86,7 +50,7 @@ class _AuthPageState extends State<AuthPage> {
         _error = e.toString();
         _loading = false;
       });
-      print('User login failed: $e');
+      print('Login failed: $e');
     }
   }
 
