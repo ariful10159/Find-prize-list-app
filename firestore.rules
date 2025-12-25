@@ -12,6 +12,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+    // Excel files collection - allow read and write
+    match /excel_files/{fileId} {
+      allow read: if true;
+      allow write: if true;
+    }
     
     // Users collection
     match /users/{userId} {

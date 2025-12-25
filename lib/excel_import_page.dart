@@ -12,21 +12,26 @@ class ExcelImportPage extends StatefulWidget {
 
 class _ExcelImportPageState extends State<ExcelImportPage> {
   bool _isUploading = false;
-  List<Map<String, dynamic>> _uploadedFiles = [];
+  late Future<List<DocumentSnapshot>> _filesFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadFiles();
+    _filesFuture = _getUploadedFiles();
   }
 
-  Future<void> _loadFiles() async {
-    // Files are stored locally in this list
-    setState(() {});
+  Future<List<DocumentSnapshot>> _getUploadedFiles() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('excel_files')
+        .orderBy('uploadedAt', descending: true)
+        .get();
+    return snapshot.docs;
   }
 
   void _refreshFiles() {
-    setState(() {});
+    setState(() {
+      _filesFuture = _getUploadedFiles();
+    });
   }
 
   Future<void> _pickAndUploadExcel() async {
@@ -47,7 +52,7 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
 
         print('Processing file: $fileName');
 
-        // Save file reference to Firestore (no data processing)
+        // Save file reference to Firestore
         await FirebaseFirestore.instance.collection('excel_files').add({
           'fileName': fileName,
           'filePath': filePath,
