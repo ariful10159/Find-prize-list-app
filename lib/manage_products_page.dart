@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
+import 'manual_prize_upload_page.dart';
 
 class ManageProductsPage extends StatefulWidget {
   @override
@@ -169,7 +170,12 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
                   SizedBox(height: 30),
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManualPrizeUploadPage(),
+                        ),
+                      );
                     },
                     icon: Icon(Icons.add),
                     label: Text('Add Product'),
@@ -369,8 +375,41 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child:
-                                            data['displayPictureData'] != null
+                                        child: data['displayPictureUrl'] != null
+                                            ? Image.network(
+                                                data['displayPictureUrl'],
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      return Icon(
+                                                        Icons
+                                                            .image_not_supported,
+                                                        size: 35,
+                                                        color: Colors.grey,
+                                                      );
+                                                    },
+                                                loadingBuilder:
+                                                    (
+                                                      context,
+                                                      child,
+                                                      loadingProgress,
+                                                    ) {
+                                                      if (loadingProgress ==
+                                                          null)
+                                                        return child;
+                                                      return Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      );
+                                                    },
+                                              )
+                                            : data['displayPictureData'] != null
                                             ? Image.memory(
                                                 Uint8List.fromList(
                                                   List<int>.from(
@@ -662,7 +701,32 @@ class _EditProductPageState extends State<EditProductPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Display existing image
-                    if (widget.productData['displayPictureData'] != null)
+                    if (widget.productData['displayPictureUrl'] != null)
+                      Center(
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              widget.productData['displayPictureUrl'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.image_not_supported,
+                                  size: 60,
+                                  color: Colors.grey,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (widget.productData['displayPictureData'] != null)
                       Center(
                         child: Container(
                           width: 200,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'dart:typed_data';
@@ -105,12 +106,38 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
     });
 
     try {
-      // Prepare prize data
+      final storage = FirebaseStorage.instance;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      // Upload display picture to Firebase Storage
+      String displayPictureUrl = '';
+      if (_displayPictureBytes != null) {
+        final displayRef = storage.ref().child(
+          'products/$timestamp/$_displayPictureName',
+        );
+        await displayRef.putData(_displayPictureBytes!);
+        displayPictureUrl = await displayRef.getDownloadURL();
+      }
+
+      // Upload additional photos to Firebase Storage
+      List<String> additionalPhotoUrls = [];
+      for (int i = 0; i < _additionalPhotos.length; i++) {
+        final photoBytes = _additionalPhotos[i]['bytes'] as Uint8List;
+        final photoName = _additionalPhotos[i]['name'] as String;
+        final photoRef = storage.ref().child(
+          'products/$timestamp/additional_$i\_$photoName',
+        );
+        await photoRef.putData(photoBytes);
+        final photoUrl = await photoRef.getDownloadURL();
+        additionalPhotoUrls.add(photoUrl);
+      }
+
+      // Prepare prize data with URLs instead of bytes
       Map<String, dynamic> prizeData = {
         'itemName': _itemNameController.text.trim(),
         'dp': double.tryParse(_dpController.text) ?? 0.0,
+        'displayPictureUrl': displayPictureUrl,
         'displayPictureName': _displayPictureName,
-        'displayPictureData': _displayPictureBytes,
         'uploadedAt': FieldValue.serverTimestamp(),
         'uploadedBy': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
       };
@@ -126,13 +153,9 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
         prizeData['mrp'] = double.tryParse(_mrpController.text) ?? 0.0;
       }
 
-      // Add additional photos if any
-      if (_additionalPhotos.isNotEmpty) {
-        List<Map<String, dynamic>> photos = [];
-        for (var photo in _additionalPhotos) {
-          photos.add({'name': photo['name'], 'data': photo['bytes']});
-        }
-        prizeData['additionalPhotos'] = photos;
+      // Add additional photo URLs if any
+      if (additionalPhotoUrls.isNotEmpty) {
+        prizeData['additionalPhotoUrls'] = additionalPhotoUrls;
       }
 
       // Upload to Firestore
