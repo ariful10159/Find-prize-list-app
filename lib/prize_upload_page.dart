@@ -20,7 +20,7 @@ class _PrizeUploadPageState extends State<PrizeUploadPage> {
       // Pick Excel file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['xlsx', 'xls', 'xlsb'],
+        allowedExtensions: ['xlsx'],
       );
 
       print(
@@ -30,8 +30,20 @@ class _PrizeUploadPageState extends State<PrizeUploadPage> {
       if (result != null) {
         print('Selected file: ${result.files.single.name}');
 
-        // Check if file is .xlsb format
+        // Check if file is old .xls or .xlsb format
         String fileName = result.files.single.name;
+        if (fileName.toLowerCase().endsWith('.xls') &&
+            !fileName.toLowerCase().endsWith('.xlsx')) {
+          setState(() {
+            _isUploading = false;
+          });
+          _showMessage(
+            '⚠️ Old Excel format (.xls) not supported!\n\nPlease convert to XLSX:\n1. Open file in Excel\n2. File → Save As\n3. Choose "Excel Workbook (.xlsx)"\n4. Upload the new file',
+            isError: true,
+          );
+          return;
+        }
+
         if (fileName.toLowerCase().endsWith('.xlsb')) {
           setState(() {
             _isUploading = false;
@@ -119,23 +131,21 @@ class _PrizeUploadPageState extends State<PrizeUploadPage> {
 
               // Check if row has enough columns
               if (row.length >= 2) {
-                // Excel columns: Code, Item name, Thickness, DP, TP, Picture, MRP
+                // Excel columns: Code, Item name, Thickness (mm), DP, TP, MRP
                 // Get values with null safety matching actual Excel structure
                 var codeCell = row.length > 0 ? row[0] : null;
                 var itemNameCell = row.length > 1 ? row[1] : null;
                 var thicknessCell = row.length > 2 ? row[2] : null;
                 var dpCell = row.length > 3 ? row[3] : null;
                 var tpCell = row.length > 4 ? row[4] : null;
-                var pictureCell = row.length > 5 ? row[5] : null;
-                var mrpCell = row.length > 6 ? row[6] : null;
+                var mrpCell = row.length > 5 ? row[5] : null;
 
-                String? code = codeCell?.value?.toString()?.trim();
-                String? itemName = itemNameCell?.value?.toString()?.trim();
-                String? thickness = thicknessCell?.value?.toString()?.trim();
-                String? dpStr = dpCell?.value?.toString()?.trim();
-                String? tpStr = tpCell?.value?.toString()?.trim();
-                String? picture = pictureCell?.value?.toString()?.trim();
-                String? mrpStr = mrpCell?.value?.toString()?.trim();
+                String? code = codeCell?.value?.toString().trim();
+                String? itemName = itemNameCell?.value?.toString().trim();
+                String? thickness = thicknessCell?.value?.toString().trim();
+                String? dpStr = dpCell?.value?.toString().trim();
+                String? tpStr = tpCell?.value?.toString().trim();
+                String? mrpStr = mrpCell?.value?.toString().trim();
 
                 print(
                   'Row $i - Code: $code, Item: $itemName, Thickness: $thickness, DP: $dpStr, TP: $tpStr, MRP: $mrpStr',
@@ -153,7 +163,6 @@ class _PrizeUploadPageState extends State<PrizeUploadPage> {
                   products.add({
                     'code': code,
                     'itemName': itemName,
-                    'picture': picture ?? '',
                     'thickness': thickness ?? '',
                     'dp': dp ?? 0.0,
                     'tp': tp ?? 0.0,
@@ -248,212 +257,241 @@ class _PrizeUploadPageState extends State<PrizeUploadPage> {
         title: const Text('Prize Upload'),
         backgroundColor: Colors.blue,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    gradient: const LinearGradient(
-                      colors: [Colors.blue, Colors.blueAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+      body: Stack(
+        children: [
+          // Background image with opacity
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.08,
+              child: Image.asset(
+                'assets/images/rfl_logo.png',
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+              ),
+            ),
+          ),
+          // Main content
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header Card
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.upload_file, size: 60, color: Colors.white),
-                      SizedBox(height: 10),
-                      Text(
-                        'Upload Product Prizes',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        gradient: const LinearGradient(
+                          colors: [Colors.blue, Colors.blueAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                      SizedBox(height: 5),
-                      Text(
-                        'Upload Excel file with product information',
-                        style: TextStyle(fontSize: 14, color: Colors.white70),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Instructions Card
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(15.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
+                      child: const Column(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue),
-                          SizedBox(width: 10),
+                          Icon(
+                            Icons.upload_file,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 10),
                           Text(
-                            'Excel File Format',
+                            'Upload Product Prizes',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Upload Excel file with product information',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Instructions Card
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.blue),
+                              SizedBox(width: 10),
+                              Text(
+                                'Excel File Format',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Your Excel file should have the following columns:',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildFormatItem('Column A:', 'Code (Required)'),
+                          _buildFormatItem('Column B:', 'Item name (Required)'),
+                          _buildFormatItem(
+                            'Column C:',
+                            'Thickness (mm) (Optional)',
+                          ),
+                          _buildFormatItem('Column D:', 'DP (Number)'),
+                          _buildFormatItem('Column E:', 'TP (Number)'),
+                          _buildFormatItem('Column F:', 'MRP (Number)'),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'The first row should be the header row',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Your Excel file should have the following columns:',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildFormatItem('Column 1:', 'Code (Required)'),
-                      _buildFormatItem('Column 2:', 'Item name (Required)'),
-                      _buildFormatItem('Column 3:', 'Picture (Optional)'),
-                      _buildFormatItem(
-                        'Column 4:',
-                        'Thickness (mm) (Optional)',
-                      ),
-                      _buildFormatItem('Column 5:', 'DP (Number)'),
-                      _buildFormatItem('Column 6:', 'TP (Number)'),
-                      _buildFormatItem('Column 7:', 'MRP (Number)'),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber,
-                              color: Colors.amber,
-                              size: 20,
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'The first row should be the header row',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Upload Button
-              ElevatedButton.icon(
-                onPressed: _isUploading ? null : _pickAndUploadExcel,
-                icon: _isUploading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.cloud_upload, size: 28),
-                label: Text(
-                  _isUploading ? 'Uploading...' : 'Select & Upload Excel File',
-                  style: const TextStyle(fontSize: 18),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-
-              if (_fileName != null) ...[
-                const SizedBox(height: 20),
-                Card(
-                  color: Colors.green.withOpacity(0.1),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                    ),
-                    title: Text('File: $_fileName'),
-                    subtitle: Text('${_parsedData.length} products found'),
-                  ),
-                ),
-              ],
-
-              // Recent Uploads (Optional - can be expanded later)
-              if (_parsedData.isNotEmpty) ...[
-                const SizedBox(height: 30),
-                const Text(
-                  'Parsed Data Preview',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Card(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _parsedData.length > 5 ? 5 : _parsedData.length,
-                    itemBuilder: (context, index) {
-                      final product = _parsedData[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue,
-                          child: Text('${index + 1}'),
-                        ),
-                        title: Text(product['itemName'] ?? ''),
-                        subtitle: Text(
-                          'Code: ${product['code']} | DP: ₹${product['dp']}',
-                        ),
-                        trailing: Text('MRP: ₹${product['mrp']}'),
-                      );
-                    },
-                  ),
-                ),
-                if (_parsedData.length > 5)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      '... and ${_parsedData.length - 5} more',
-                      style: const TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
-              ],
-            ],
+
+                  const SizedBox(height: 30),
+
+                  // Upload Button
+                  ElevatedButton.icon(
+                    onPressed: _isUploading ? null : _pickAndUploadExcel,
+                    icon: _isUploading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.cloud_upload, size: 28),
+                    label: Text(
+                      _isUploading
+                          ? 'Uploading...'
+                          : 'Select & Upload Excel File',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+
+                  if (_fileName != null) ...[
+                    const SizedBox(height: 20),
+                    Card(
+                      color: Colors.green.withOpacity(0.1),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                        ),
+                        title: Text('File: $_fileName'),
+                        subtitle: Text('${_parsedData.length} products found'),
+                      ),
+                    ),
+                  ],
+
+                  // Recent Uploads (Optional - can be expanded later)
+                  if (_parsedData.isNotEmpty) ...[
+                    const SizedBox(height: 30),
+                    const Text(
+                      'Parsed Data Preview',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Card(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _parsedData.length > 5
+                            ? 5
+                            : _parsedData.length,
+                        itemBuilder: (context, index) {
+                          final product = _parsedData[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.blue,
+                              child: Text('${index + 1}'),
+                            ),
+                            title: Text(product['itemName'] ?? ''),
+                            subtitle: Text(
+                              'Code: ${product['code']} | DP: ₹${product['dp']}',
+                            ),
+                            trailing: Text('MRP: ₹${product['mrp']}'),
+                          );
+                        },
+                      ),
+                    ),
+                    if (_parsedData.length > 5)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          '... and ${_parsedData.length - 5} more',
+                          style: const TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
