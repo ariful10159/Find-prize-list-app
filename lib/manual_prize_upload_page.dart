@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -16,17 +17,14 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
 
   // Required fields
   final TextEditingController _itemNameController = TextEditingController();
+  final TextEditingController _dpController = TextEditingController();
   Uint8List? _displayPictureBytes;
   String? _displayPictureName;
 
   // Optional fields
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
-  final TextEditingController _brandController = TextEditingController();
-  final TextEditingController _skuController = TextEditingController();
-  final TextEditingController _stockController = TextEditingController();
-  final TextEditingController _discountController = TextEditingController();
+  final TextEditingController _thicknessController = TextEditingController();
+  final TextEditingController _tpController = TextEditingController();
+  final TextEditingController _mrpController = TextEditingController();
 
   // Additional photos
   List<Map<String, dynamic>> _additionalPhotos = [];
@@ -34,13 +32,10 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
   @override
   void dispose() {
     _itemNameController.dispose();
-    _priceController.dispose();
-    _descriptionController.dispose();
-    _categoryController.dispose();
-    _brandController.dispose();
-    _skuController.dispose();
-    _stockController.dispose();
-    _discountController.dispose();
+    _dpController.dispose();
+    _thicknessController.dispose();
+    _tpController.dispose();
+    _mrpController.dispose();
     super.dispose();
   }
 
@@ -113,6 +108,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       // Prepare prize data
       Map<String, dynamic> prizeData = {
         'itemName': _itemNameController.text.trim(),
+        'dp': double.tryParse(_dpController.text) ?? 0.0,
         'displayPictureName': _displayPictureName,
         'displayPictureData': _displayPictureBytes,
         'uploadedAt': FieldValue.serverTimestamp(),
@@ -120,27 +116,14 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       };
 
       // Add optional fields if filled
-      if (_priceController.text.isNotEmpty) {
-        prizeData['price'] = double.tryParse(_priceController.text) ?? 0.0;
+      if (_thicknessController.text.isNotEmpty) {
+        prizeData['thickness'] = _thicknessController.text.trim();
       }
-      if (_descriptionController.text.isNotEmpty) {
-        prizeData['description'] = _descriptionController.text.trim();
+      if (_tpController.text.isNotEmpty) {
+        prizeData['tp'] = double.tryParse(_tpController.text) ?? 0.0;
       }
-      if (_categoryController.text.isNotEmpty) {
-        prizeData['category'] = _categoryController.text.trim();
-      }
-      if (_brandController.text.isNotEmpty) {
-        prizeData['brand'] = _brandController.text.trim();
-      }
-      if (_skuController.text.isNotEmpty) {
-        prizeData['sku'] = _skuController.text.trim();
-      }
-      if (_stockController.text.isNotEmpty) {
-        prizeData['stock'] = int.tryParse(_stockController.text) ?? 0;
-      }
-      if (_discountController.text.isNotEmpty) {
-        prizeData['discount'] =
-            double.tryParse(_discountController.text) ?? 0.0;
+      if (_mrpController.text.isNotEmpty) {
+        prizeData['mrp'] = double.tryParse(_mrpController.text) ?? 0.0;
       }
 
       // Add additional photos if any
@@ -171,13 +154,10 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
   void _clearForm() {
     _formKey.currentState?.reset();
     _itemNameController.clear();
-    _priceController.clear();
-    _descriptionController.clear();
-    _categoryController.clear();
-    _brandController.clear();
-    _skuController.clear();
-    _stockController.clear();
-    _discountController.clear();
+    _dpController.clear();
+    _thicknessController.clear();
+    _tpController.clear();
+    _mrpController.clear();
     setState(() {
       _displayPictureBytes = null;
       _displayPictureName = null;
@@ -235,7 +215,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                   children: [
                     // Header
                     Text(
-                      'Add New Prize',
+                      'Add New Product Prize',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -277,6 +257,32 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                     ),
                     SizedBox(height: 20),
 
+                    // DP (Required)
+                    TextFormField(
+                      controller: _dpController,
+                      decoration: InputDecoration(
+                        labelText: 'DP (Display Price) *',
+                        hintText: 'Enter display price',
+                        prefixIcon: Icon(FontAwesomeIcons.bangladeshiTakaSign),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'DP is required';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 20),
+
                     // Display Picture (Required)
                     Text(
                       'Display Picture *',
@@ -293,13 +299,27 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                     _buildSectionHeader('Optional Information'),
                     SizedBox(height: 15),
 
-                    // Price
+                    // Thickness
                     TextFormField(
-                      controller: _priceController,
+                      controller: _thicknessController,
                       decoration: InputDecoration(
-                        labelText: 'Price',
-                        hintText: 'Enter prize price',
-                        prefixIcon: Icon(Icons.attach_money),
+                        labelText: 'Thickness',
+                        hintText: 'Enter product thickness',
+                        prefixIcon: Icon(Icons.straighten),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 15),
+
+                    // TP (Trade Price)
+                    TextFormField(
+                      controller: _tpController,
+                      decoration: InputDecoration(
+                        labelText: 'TP (Trade Price)',
+                        hintText: 'Enter trade price',
+                        prefixIcon: Icon(Icons.money),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -310,85 +330,13 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                     ),
                     SizedBox(height: 15),
 
-                    // Description
+                    // MRP (Maximum Retail Price)
                     TextFormField(
-                      controller: _descriptionController,
+                      controller: _mrpController,
                       decoration: InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'Enter prize description',
-                        prefixIcon: Icon(Icons.description),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                    SizedBox(height: 15),
-
-                    // Category
-                    TextFormField(
-                      controller: _categoryController,
-                      decoration: InputDecoration(
-                        labelText: 'Category',
-                        hintText: 'Enter prize category',
-                        prefixIcon: Icon(Icons.category),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 15),
-
-                    // Brand
-                    TextFormField(
-                      controller: _brandController,
-                      decoration: InputDecoration(
-                        labelText: 'Brand',
-                        hintText: 'Enter brand name',
-                        prefixIcon: Icon(Icons.branding_watermark),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 15),
-
-                    // SKU
-                    TextFormField(
-                      controller: _skuController,
-                      decoration: InputDecoration(
-                        labelText: 'SKU',
-                        hintText: 'Enter SKU code',
-                        prefixIcon: Icon(Icons.qr_code),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 15),
-
-                    // Stock
-                    TextFormField(
-                      controller: _stockController,
-                      decoration: InputDecoration(
-                        labelText: 'Stock Quantity',
-                        hintText: 'Enter available stock',
-                        prefixIcon: Icon(Icons.inventory),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 15),
-
-                    // Discount
-                    TextFormField(
-                      controller: _discountController,
-                      decoration: InputDecoration(
-                        labelText: 'Discount (%)',
-                        hintText: 'Enter discount percentage',
-                        prefixIcon: Icon(Icons.local_offer),
+                        labelText: 'MRP (Maximum Retail Price)',
+                        hintText: 'Enter maximum retail price',
+                        prefixIcon: Icon(Icons.sell),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -400,7 +348,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                     SizedBox(height: 30),
 
                     // Additional Photos Section
-                    _buildSectionHeader('Additional Photos'),
+                    _buildSectionHeader('Photos (Optional)'),
                     SizedBox(height: 15),
                     _buildAdditionalPhotosSection(),
                     SizedBox(height: 40),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'manual_prize_upload_page.dart';
+import 'manage_products_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   @override
@@ -95,10 +96,10 @@ class AdminHomePage extends StatelessWidget {
                         title: 'Manage Products',
                         color: Colors.orange,
                         onTap: () {
-                          // TODO: Navigate to manage products
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Manage Products - Coming Soon'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ManageProductsPage(),
                             ),
                           );
                         },
@@ -306,9 +307,10 @@ class AdminHomePage extends StatelessWidget {
             title: const Text('Manage Products'),
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(
+              Navigator.push(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('Coming Soon')));
+                MaterialPageRoute(builder: (context) => ManageProductsPage()),
+              );
             },
           ),
           ListTile(

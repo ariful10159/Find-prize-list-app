@@ -45,6 +45,9 @@ dependencies:
   file_picker: ^10.3.8
   excel: ^2.1.0
 
+  # Icons
+  font_awesome_flutter: ^10.7.0
+
   # State management
   provider: ^6.1.2
 
