@@ -96,11 +96,6 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       return;
     }
 
-    if (_displayPictureBytes == null) {
-      _showMessage('Please select a display picture!', isError: true);
-      return;
-    }
-
     setState(() {
       _isUploading = true;
     });
@@ -109,7 +104,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       final storage = FirebaseStorage.instance;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      // Upload display picture to Firebase Storage
+      // Upload display picture to Firebase Storage (optional)
       String displayPictureUrl = '';
       if (_displayPictureBytes != null) {
         final displayRef = storage.ref().child(
@@ -134,13 +129,21 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
 
       // Prepare prize data with URLs instead of bytes
       Map<String, dynamic> prizeData = {
+        'code': '', // Empty code for manual uploads
         'itemName': _itemNameController.text.trim(),
+        'thickness': _thicknessController.text.trim().isNotEmpty
+            ? _thicknessController.text.trim()
+            : '',
         'dp': double.tryParse(_dpController.text) ?? 0.0,
-        'displayPictureUrl': displayPictureUrl,
-        'displayPictureName': _displayPictureName,
+        'tp': double.tryParse(_tpController.text) ?? 0.0,
+        'mrp': double.tryParse(_mrpController.text) ?? 0.0,
         'uploadedAt': FieldValue.serverTimestamp(),
-        'uploadedBy': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
       };
+
+      // Add display picture URL if provided
+      if (displayPictureUrl.isNotEmpty) {
+        prizeData['displayPictureUrl'] = displayPictureUrl;
+      }
 
       // Add optional fields if filled
       if (_thicknessController.text.isNotEmpty) {
@@ -159,7 +162,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       }
 
       // Upload to Firestore
-      await FirebaseFirestore.instance.collection('prizes').add(prizeData);
+      await FirebaseFirestore.instance.collection('products').add(prizeData);
 
       _showMessage('Prize uploaded successfully!', isError: false);
 
@@ -304,18 +307,6 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                         return null;
                       },
                     ),
-                    SizedBox(height: 20),
-
-                    // Display Picture (Required)
-                    Text(
-                      'Display Picture *',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    _buildDisplayPictureSection(),
                     SizedBox(height: 30),
 
                     // Optional Fields Section
