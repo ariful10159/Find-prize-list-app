@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'manual_prize_upload_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   @override
@@ -122,10 +123,10 @@ class AdminHomePage extends StatelessWidget {
                         title: 'Add Product',
                         color: Colors.purple,
                         onTap: () {
-                          // TODO: Navigate to add product
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Add Product - Coming Soon'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ManualPrizeUploadPage(),
                             ),
                           );
                         },
@@ -285,6 +286,19 @@ class AdminHomePage extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/prize-upload');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.add_circle, color: Colors.purple),
+            title: const Text('Manual Prize Upload'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ManualPrizeUploadPage(),
+                ),
+              );
             },
           ),
           ListTile(
