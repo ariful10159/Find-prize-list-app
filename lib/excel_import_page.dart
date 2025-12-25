@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 
 class ExcelImportPage extends StatefulWidget {
   @override
@@ -50,12 +51,19 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
         File file = File(filePath);
         String fileExtension = fileName.split('.').last.toLowerCase();
 
-        print('Processing file: $fileName');
+        print('Uploading file to Firebase Storage: $fileName');
+        // Upload file to Firebase Storage
+        Reference storageRef = FirebaseStorage.instance.ref().child(
+          'uploads/$fileName',
+        );
+        UploadTask uploadTask = storageRef.putFile(file);
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadURL = await snapshot.ref.getDownloadURL();
 
-        // Save file reference to Firestore
+        // Save file metadata and download URL to Firestore
         await FirebaseFirestore.instance.collection('excel_files').add({
           'fileName': fileName,
-          'filePath': filePath,
+          'downloadURL': downloadURL,
           'fileExtension': fileExtension,
           'uploadedAt': FieldValue.serverTimestamp(),
           'status': 'uploaded',
@@ -271,7 +279,7 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
                     return _buildFileCard(
                       doc.id,
                       data['fileName'] ?? 'Unknown',
-                      data['filePath'] ?? '',
+                      data['downloadURL'] ?? '',
                       data['uploadedAt']?.toDate() ?? DateTime.now(),
                     );
                   },
@@ -287,7 +295,7 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
   Widget _buildFileCard(
     String docId,
     String fileName,
-    String filePath,
+    String downloadURL,
     DateTime uploadedAt,
   ) {
     return Card(
@@ -323,13 +331,25 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
           itemBuilder: (context) => [
             PopupMenuItem(
               child: ListTile(
+                leading: Icon(Icons.open_in_new, color: Colors.blue),
+                title: Text('Open'),
+                contentPadding: EdgeInsets.zero,
+                onTap: () {
+                  Future.delayed(Duration.zero, () {
+                    _openFile(downloadURL);
+                  });
+                },
+              ),
+            ),
+            PopupMenuItem(
+              child: ListTile(
                 leading: Icon(Icons.delete, color: Colors.red),
                 title: Text('Delete'),
                 contentPadding: EdgeInsets.zero,
               ),
               onTap: () {
                 Future.delayed(Duration.zero, () {
-                  _showDeleteConfirmation(docId, filePath, fileName);
+                  _showDeleteConfirmation(docId, downloadURL, fileName);
                 });
               },
             ),
@@ -337,6 +357,20 @@ class _ExcelImportPageState extends State<ExcelImportPage> {
         ),
       ),
     );
+  }
+
+  void _openFile(String url) async {
+    if (url.isEmpty) return;
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open file.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showDeleteConfirmation(String docId, String filePath, String fileName) {
