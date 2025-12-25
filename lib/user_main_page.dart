@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'user_products_page.dart';
 
 class UserMainPage extends StatefulWidget {
@@ -402,7 +403,12 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.logout,
               title: 'Logout',
               subtitle: 'Sign out of your account',
-              onTap: () {},
+              onTap: () async {
+                await FirebaseAuth.instance.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushReplacementNamed('/');
+                }
+              },
               isDestructive: true,
             ),
           ],

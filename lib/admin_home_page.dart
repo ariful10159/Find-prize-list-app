@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'manual_prize_upload_page.dart';
 import 'manage_products_page.dart';
+import 'prize_upload_page.dart';
+import 'excel_import_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   @override
@@ -152,10 +154,10 @@ class AdminHomePage extends StatelessWidget {
                         title: 'Import Excel',
                         color: Colors.teal,
                         onTap: () {
-                          // TODO: Navigate to import excel
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Import Excel - Coming Soon'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ExcelImportPage(),
                             ),
                           );
                         },
@@ -282,11 +284,14 @@ class AdminHomePage extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.upload_file, color: Colors.blue),
-            title: const Text('Prize Upload'),
+            leading: const Icon(Icons.upload_file, color: Colors.teal),
+            title: const Text('Import Excel'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/prize-upload');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ExcelImportPage()),
+              );
             },
           ),
           ListTile(
