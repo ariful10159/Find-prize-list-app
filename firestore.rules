@@ -10,7 +10,7 @@ service cloud.firestore {
     // Products collection - admin can write
     match /products/{productId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if true
     }
     // Excel files collection - allow read and write
     match /excel_files/{fileId} {
