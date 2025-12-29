@@ -236,44 +236,56 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
                   },
                   child: Column(
                     children: [
-                      // Category Filter Dropdown
+                      // Category Filter Buttons (side by side)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedCategory,
-                                items: [
-                                  DropdownMenuItem(
-                                    value: '',
-                                    child: Text('All Categories'),
-                                  ),
-                                  ..._categories.map(
-                                    (cat) => DropdownMenuItem(
-                                      value: cat,
-                                      child: Text(cat),
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedCategory = val == '' ? null : val;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  labelText: 'Filter by Category',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              // 'All' button
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ChoiceChip(
+                                  label: Text('All'),
+                                  selected: _selectedCategory == null,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedCategory = null;
+                                    });
+                                  },
+                                  selectedColor: Colors.blue,
+                                  labelStyle: TextStyle(
+                                    color: _selectedCategory == null
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                              ..._categories.map(
+                                (cat) => Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ChoiceChip(
+                                    label: Text(cat),
+                                    selected: _selectedCategory == cat,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _selectedCategory = selected
+                                            ? cat
+                                            : null;
+                                      });
+                                    },
+                                    selectedColor: Colors.blue,
+                                    labelStyle: TextStyle(
+                                      color: _selectedCategory == cat
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       // Total Count Card
