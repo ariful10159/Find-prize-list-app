@@ -13,6 +13,36 @@ class ManualPrizeUploadPage extends StatefulWidget {
 }
 
 class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
+  String? _selectedCategory;
+  List<String> _categories = [];
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('categories')
+          .orderBy('name')
+          .get();
+      setState(() {
+        _categories = snapshot.docs
+            .map((doc) => doc['name'] as String)
+            .toList();
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      _showMessage('Error loading categories: $e', isError: true);
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   bool _isUploading = false;
 
@@ -95,6 +125,10 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      _showMessage('Please select a category.', isError: true);
+      return;
+    }
 
     setState(() {
       _isUploading = true;
@@ -131,6 +165,7 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
       Map<String, dynamic> prizeData = {
         'code': '', // Empty code for manual uploads
         'itemName': _itemNameController.text.trim(),
+        'category': _selectedCategory,
         'thickness': _thicknessController.text.trim().isNotEmpty
             ? _thicknessController.text.trim()
             : '',
@@ -232,6 +267,8 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                 ],
               ),
             )
+          : _isLoadingCategories
+          ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -258,6 +295,37 @@ class _ManualPrizeUploadPageState extends State<ManualPrizeUploadPage> {
                       ),
                     ),
                     SizedBox(height: 30),
+
+                    // Category Dropdown (Required)
+                    _buildSectionHeader('Select Category *'),
+                    SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      items: _categories
+                          .map(
+                            (cat) =>
+                                DropdownMenuItem(value: cat, child: Text(cat)),
+                          )
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCategory = val;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                      ),
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Please select a category'
+                          : null,
+                    ),
+                    SizedBox(height: 25),
 
                     // Required Fields Section
                     _buildSectionHeader('Required Information'),

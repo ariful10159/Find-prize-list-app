@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'manual_prize_upload_page.dart';
-import 'manage_products_page.dart';
-import 'prize_upload_page.dart';
-import 'excel_import_page.dart';
+// Removed self-import
 import 'category_management_page.dart';
+import 'excel_import_page.dart';
+import 'manage_products_page.dart';
+import 'manual_prize_upload_page.dart';
+import 'prize_upload_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   @override

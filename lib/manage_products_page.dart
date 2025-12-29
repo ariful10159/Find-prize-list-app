@@ -9,6 +9,34 @@ class ManageProductsPage extends StatefulWidget {
 }
 
 class _ManageProductsPageState extends State<ManageProductsPage> {
+  String? _selectedCategory;
+  List<String> _categories = [];
+  bool _isLoadingCategories = true;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final snapshot = await _firestore
+          .collection('categories')
+          .orderBy('name')
+          .get();
+      setState(() {
+        _categories = snapshot.docs
+            .map((doc) => doc['name'] as String)
+            .toList();
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
+  }
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -128,417 +156,498 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
         backgroundColor: Colors.blue,
         elevation: 0,
       ),
-      body: FutureBuilder<List<DocumentSnapshot>>(
-        future: _productsFuture,
-        builder: (context, snapshot) {
-          // Filter products based on search query
-          List<DocumentSnapshot> filteredProducts = [];
-          if (snapshot.hasData) {
-            filteredProducts = snapshot.data!.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              final itemName = (data['itemName'] ?? '')
-                  .toString()
-                  .toLowerCase();
-              final code = (data['code'] ?? '').toString().toLowerCase();
-              final query = _searchQuery.toLowerCase();
-              return itemName.contains(query) || code.contains(query);
-            }).toList();
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      body: _isLoadingCategories
+          ? Center(child: CircularProgressIndicator())
+          : FutureBuilder<List<DocumentSnapshot>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                // Filter products based on search query and category
+                List<DocumentSnapshot> filteredProducts = [];
+                if (snapshot.hasData) {
+                  filteredProducts = snapshot.data!.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final itemName = (data['itemName'] ?? '')
+                        .toString()
+                        .toLowerCase();
+                    final code = (data['code'] ?? '').toString().toLowerCase();
+                    final query = _searchQuery.toLowerCase();
+                    final matchesSearch =
+                        itemName.contains(query) || code.contains(query);
+                    if (_selectedCategory != null &&
+                        _selectedCategory!.isNotEmpty) {
+                      return matchesSearch &&
+                          data['category'] == _selectedCategory;
+                    }
+                    return matchesSearch;
+                  }).toList();
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'No products found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 30),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ManualPrizeUploadPage(),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.add),
-                    label: Text('Add Product'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              _refreshProducts();
-            },
-            child: Column(
-              children: [
-                // Total Count Card
-                Container(
-                  width: double.infinity,
-                  margin: EdgeInsets.all(16),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue, Colors.blueAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Total Products',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            '${snapshot.data!.length}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Icon(
-                        Icons.inventory_2,
-                        size: 50,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Search Bar
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search by product name or code...',
-                      prefixIcon: Icon(Icons.search, color: Colors.blue),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear),
-                              onPressed: () {
-                                setState(() {
-                                  _searchController.clear();
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(height: 12),
-
-                // Results Count
-                if (_searchQuery.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 80,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 20),
                         Text(
-                          'Found ${filteredProducts.length} result(s)',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                          'No products found',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        SizedBox(height: 30),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ManualPrizeUploadPage(),
+                              ),
+                            );
+                          },
+                          icon: Icon(Icons.add),
+                          label: Text('Add Product'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  );
+                }
 
-                // Product List
-                Expanded(
-                  child: filteredProducts.isEmpty && _searchQuery.isNotEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 60,
-                                color: Colors.grey,
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    _refreshProducts();
+                  },
+                  child: Column(
+                    children: [
+                      // Category Filter Dropdown
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedCategory,
+                                items: [
+                                  DropdownMenuItem(
+                                    value: '',
+                                    child: Text('All Categories'),
+                                  ),
+                                  ..._categories.map(
+                                    (cat) => DropdownMenuItem(
+                                      value: cat,
+                                      child: Text(cat),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedCategory = val == '' ? null : val;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: 'Filter by Category',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 14,
+                                  ),
+                                ),
                               ),
-                              SizedBox(height: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Total Count Card
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue, Colors.blueAccent],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Total Products',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '${snapshot.data!.length}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              Icons.inventory_2,
+                              size: 50,
+                              color: Colors.white.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Search Bar
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search by product name or code...',
+                            prefixIcon: Icon(Icons.search, color: Colors.blue),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.blue,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 12),
+
+                      // Results Count
+                      if (_searchQuery.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
                               Text(
-                                'No products found',
+                                'Found ${filteredProducts.length} result(s)',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
                           ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            final doc = filteredProducts[index];
-                            final data = doc.data() as Map<String, dynamic>;
+                        ),
 
-                            return Card(
-                              margin: EdgeInsets.only(bottom: 12),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                      // Product List
+                      Expanded(
+                        child:
+                            filteredProducts.isEmpty && _searchQuery.isNotEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    // Serial Number
-                                    Container(
-                                      width: 35,
-                                      height: 35,
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
+                                    Icon(
+                                      Icons.search_off,
+                                      size: 60,
+                                      color: Colors.grey,
                                     ),
-                                    SizedBox(width: 12),
-
-                                    // Product Image
-                                    Container(
-                                      width: 70,
-                                      height: 70,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.grey[300]!,
-                                        ),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: data['displayPictureUrl'] != null
-                                            ? Image.network(
-                                                data['displayPictureUrl'],
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) {
-                                                      return Icon(
-                                                        Icons
-                                                            .image_not_supported,
-                                                        size: 35,
-                                                        color: Colors.grey,
-                                                      );
-                                                    },
-                                                loadingBuilder:
-                                                    (
-                                                      context,
-                                                      child,
-                                                      loadingProgress,
-                                                    ) {
-                                                      if (loadingProgress ==
-                                                          null)
-                                                        return child;
-                                                      return Center(
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                            ),
-                                                      );
-                                                    },
-                                              )
-                                            : data['displayPictureData'] != null
-                                            ? Image.memory(
-                                                Uint8List.fromList(
-                                                  List<int>.from(
-                                                    data['displayPictureData'],
-                                                  ),
-                                                ),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Icon(
-                                                Icons.image_not_supported,
-                                                size: 35,
-                                                color: Colors.grey,
-                                              ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-
-                                    // Product Details in Table Format
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // Item Name
-                                          Text(
-                                            data['itemName'] ?? 'Unknown',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          SizedBox(height: 8),
-
-                                          // Table-like layout
-                                          _buildInfoRow(
-                                            'DP',
-                                            '৳${data['dp'] ?? 0}',
-                                            Colors.green[700]!,
-                                          ),
-                                          if (data['tp'] != null)
-                                            _buildInfoRow(
-                                              'TP',
-                                              '৳${data['tp']}',
-                                              Colors.blue[700]!,
-                                            ),
-                                          if (data['mrp'] != null)
-                                            _buildInfoRow(
-                                              'MRP',
-                                              '৳${data['mrp']}',
-                                              Colors.orange[700]!,
-                                            ),
-                                          if (data['thickness'] != null)
-                                            _buildInfoRow(
-                                              'Thickness',
-                                              '${data['thickness']}',
-                                              Colors.grey[700]!,
-                                            ),
-                                          if (data['code'] != null)
-                                            _buildInfoRow(
-                                              'Code',
-                                              '${data['code']}',
-                                              Colors.grey[600]!,
-                                            ),
-
-                                          SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              // Edit Button
-                                              ElevatedButton.icon(
-                                                onPressed: () =>
-                                                    _editProduct(doc),
-                                                icon: Icon(
-                                                  Icons.edit,
-                                                  size: 16,
-                                                ),
-                                                label: Text('Edit'),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.blue,
-                                                  foregroundColor: Colors.white,
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 8,
-                                                  ),
-                                                  minimumSize: Size(0, 32),
-                                                ),
-                                              ),
-                                              SizedBox(width: 8),
-
-                                              // Delete Button
-                                              ElevatedButton.icon(
-                                                onPressed: () => _deleteProduct(
-                                                  doc.id,
-                                                  data['itemName'] ?? 'Unknown',
-                                                ),
-                                                icon: Icon(
-                                                  Icons.delete,
-                                                  size: 16,
-                                                ),
-                                                label: Text('Delete'),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red,
-                                                  foregroundColor: Colors.white,
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 8,
-                                                  ),
-                                                  minimumSize: Size(0, 32),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No products found',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
                                       ),
                                     ),
                                   ],
                                 ),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: filteredProducts.length,
+                                itemBuilder: (context, index) {
+                                  final doc = filteredProducts[index];
+                                  final data =
+                                      doc.data() as Map<String, dynamic>;
+
+                                  return Card(
+                                    margin: EdgeInsets.only(bottom: 12),
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Serial Number
+                                          Container(
+                                            width: 35,
+                                            height: 35,
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '${index + 1}',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 12),
+
+                                          // Product Image
+                                          Container(
+                                            width: 70,
+                                            height: 70,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Colors.grey[300]!,
+                                              ),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child:
+                                                  data['displayPictureUrl'] !=
+                                                      null
+                                                  ? Image.network(
+                                                      data['displayPictureUrl'],
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return Icon(
+                                                              Icons
+                                                                  .image_not_supported,
+                                                              size: 35,
+                                                              color:
+                                                                  Colors.grey,
+                                                            );
+                                                          },
+                                                      loadingBuilder:
+                                                          (
+                                                            context,
+                                                            child,
+                                                            loadingProgress,
+                                                          ) {
+                                                            if (loadingProgress ==
+                                                                null)
+                                                              return child;
+                                                            return Center(
+                                                              child:
+                                                                  CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                            );
+                                                          },
+                                                    )
+                                                  : data['displayPictureData'] !=
+                                                        null
+                                                  ? Image.memory(
+                                                      Uint8List.fromList(
+                                                        List<int>.from(
+                                                          data['displayPictureData'],
+                                                        ),
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : Icon(
+                                                      Icons.image_not_supported,
+                                                      size: 35,
+                                                      color: Colors.grey,
+                                                    ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 12),
+
+                                          // Product Details in Table Format
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // Item Name
+                                                Text(
+                                                  data['itemName'] ?? 'Unknown',
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black87,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                SizedBox(height: 8),
+
+                                                // Table-like layout
+                                                _buildInfoRow(
+                                                  'DP',
+                                                  '৳${data['dp'] ?? 0}',
+                                                  Colors.green[700]!,
+                                                ),
+                                                if (data['tp'] != null)
+                                                  _buildInfoRow(
+                                                    'TP',
+                                                    '৳${data['tp']}',
+                                                    Colors.blue[700]!,
+                                                  ),
+                                                if (data['mrp'] != null)
+                                                  _buildInfoRow(
+                                                    'MRP',
+                                                    '৳${data['mrp']}',
+                                                    Colors.orange[700]!,
+                                                  ),
+                                                if (data['thickness'] != null)
+                                                  _buildInfoRow(
+                                                    'Thickness',
+                                                    '${data['thickness']}',
+                                                    Colors.grey[700]!,
+                                                  ),
+                                                if (data['code'] != null)
+                                                  _buildInfoRow(
+                                                    'Code',
+                                                    '${data['code']}',
+                                                    Colors.grey[600]!,
+                                                  ),
+
+                                                SizedBox(height: 8),
+                                                Row(
+                                                  children: [
+                                                    // Edit Button
+                                                    ElevatedButton.icon(
+                                                      onPressed: () =>
+                                                          _editProduct(doc),
+                                                      icon: Icon(
+                                                        Icons.edit,
+                                                        size: 16,
+                                                      ),
+                                                      label: Text('Edit'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.blue,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 8,
+                                                            ),
+                                                        minimumSize: Size(
+                                                          0,
+                                                          32,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8),
+
+                                                    // Delete Button
+                                                    ElevatedButton.icon(
+                                                      onPressed: () =>
+                                                          _deleteProduct(
+                                                            doc.id,
+                                                            data['itemName'] ??
+                                                                'Unknown',
+                                                          ),
+                                                      icon: Icon(
+                                                        Icons.delete,
+                                                        size: 16,
+                                                      ),
+                                                      label: Text('Delete'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 8,
+                                                            ),
+                                                        minimumSize: Size(
+                                                          0,
+                                                          32,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
-                ),
-              ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 
