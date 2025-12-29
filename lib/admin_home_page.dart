@@ -4,6 +4,7 @@ import 'manual_prize_upload_page.dart';
 import 'manage_products_page.dart';
 import 'prize_upload_page.dart';
 import 'excel_import_page.dart';
+import 'category_management_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   @override
@@ -302,6 +303,19 @@ class AdminHomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => PrizeUploadPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.category, color: Colors.deepPurple),
+            title: const Text('Manage Categories'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CategoryManagementPage(),
+                ),
               );
             },
           ),
