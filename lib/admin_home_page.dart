@@ -295,6 +295,17 @@ class AdminHomePage extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.cloud_upload, color: Colors.blue),
+            title: const Text('Prize Upload'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PrizeUploadPage()),
+              );
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.add_circle, color: Colors.purple),
             title: const Text('Manual Prize Upload'),
             onTap: () {
